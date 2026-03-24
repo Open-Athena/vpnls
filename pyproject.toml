@@ -1,0 +1,28 @@
+[project]
+name = "vpnls"
+version = "0.1.0"
+description = "Variable Projection with Nonlinear Least Squares (VPNLS) for Chinchilla scaling law fits"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = []
+
+[project.optional-dependencies]
+scipy = ["scipy>=1.10"]
+jax = ["jax[cpu]>=0.4"]
+
+[build-system]
+requires = ["setuptools>=64", "cython>=3.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = ["pytest>=7.0", "scipy>=1.10", "jax[cpu]>=0.4", "ruff>=0.8", "pre-commit>=3.0"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
