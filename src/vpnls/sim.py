@@ -7,25 +7,6 @@ import numpy as np
 from vpnls.types import DEFAULT_ISOFLOP_EXPERIMENT, IsoFlopExperiment, LossSurface
 
 
-def compute_center_offset(
-    C: float,
-    compute_budgets: np.ndarray,
-    drift_rate: float,
-    center_scale: float,
-) -> float:
-    """Compute sampling center offset combining drift and scale."""
-    offset = 0.0
-    if center_scale != 1.0:
-        offset -= np.log10(center_scale)
-    if drift_rate != 0.0:
-        log_C = np.log10(C)
-        log_C_min = np.log10(compute_budgets.min())
-        log_C_max = np.log10(compute_budgets.max())
-        fraction = (log_C - log_C_min) / (log_C_max - log_C_min) if log_C_max > log_C_min else 0.0
-        offset -= drift_rate * fraction
-    return offset
-
-
 def isoflop_sample(
     C: float,
     n_points: int,

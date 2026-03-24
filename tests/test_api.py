@@ -1,11 +1,14 @@
 """Tests for the unified fit_vpnls API."""
 
+import numpy as np
 import pytest
 from conftest import NOISELESS, SURFACES
 
 from vpnls.api import fit_vpnls
 from vpnls.sim import generate_isoflop_data
 from vpnls.types import GridResult, JaxResult, LossFunction, LossType, ScipyResult
+
+METHODS = ["grid", "scipy", "jax"]
 
 LOSS_FUNCTIONS = [
     pytest.param(None, id="mse"),
@@ -50,3 +53,36 @@ def test_invalid_method():
 
     with pytest.raises(ValueError, match="Unknown method"):
         fit_vpnls(N, D, L, method="bogus")
+
+
+@pytest.mark.parametrize("method", METHODS)
+class TestInputValidation:
+    N = np.array([1e9, 1e10, 1e11, 1e12, 1e13])
+    D = np.array([1e10, 1e11, 1e12, 1e13, 1e14])
+    L = np.array([2.0, 1.9, 1.8, 1.7, 1.6])
+
+    def test_mismatched_lengths(self, method):
+        with pytest.raises(ValueError, match="same length"):
+            fit_vpnls(self.N, self.D[:3], self.L, method=method)
+
+    def test_too_few_points(self, method):
+        with pytest.raises(ValueError, match="at least 4"):
+            fit_vpnls(self.N[:3], self.D[:3], self.L[:3], method=method)
+
+    def test_non_positive_N(self, method):
+        bad_N = self.N.copy()
+        bad_N[0] = -1
+        with pytest.raises(ValueError, match="N must be positive"):
+            fit_vpnls(bad_N, self.D, self.L, method=method)
+
+    def test_non_positive_D(self, method):
+        bad_D = self.D.copy()
+        bad_D[0] = 0
+        with pytest.raises(ValueError, match="D must be positive"):
+            fit_vpnls(self.N, bad_D, self.L, method=method)
+
+    def test_non_finite_L(self, method):
+        bad_L = self.L.copy()
+        bad_L[0] = np.nan
+        with pytest.raises(ValueError, match="L must be finite"):
+            fit_vpnls(self.N, self.D, bad_L, method=method)
