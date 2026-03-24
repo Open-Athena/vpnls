@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -18,6 +20,120 @@ from vpnls.types import (
 )
 
 
+@dataclass
+class RawGridResult:
+    """Unpacked grid_search output."""
+
+    E: float
+    A: float
+    B: float
+    alpha: float
+    beta: float
+    obj: float
+    rss: float
+    clamped_mask: int
+    ai: int
+    bi: int
+    n_alpha: int
+    n_beta: int
+
+    @staticmethod
+    def from_tuple(t: tuple) -> RawGridResult:
+        return RawGridResult(*t)
+
+
+@dataclass(frozen=True)
+class GridSearchArgs:
+    """Shared arguments for grid_search calls."""
+
+    log_N: np.ndarray
+    log_D: np.ndarray
+    L: np.ndarray
+    beta_lo: float
+    beta_hi: float
+    resolution: float
+    loss_type_int: int
+    huber_delta: float
+    max_irls_iter: int
+
+    def run(self, alpha_lo: float, alpha_hi: float) -> RawGridResult:
+        return RawGridResult.from_tuple(
+            grid_search(
+                self.log_N,
+                self.log_D,
+                self.L,
+                alpha_lo,
+                alpha_hi,
+                self.beta_lo,
+                self.beta_hi,
+                self.resolution,
+                self.loss_type_int,
+                self.huber_delta,
+                self.max_irls_iter,
+            )
+        )
+
+
+def _run_chunk(args: GridSearchArgs, alpha_lo: float, alpha_hi: float) -> RawGridResult:
+    """Top-level function for picklability in ProcessPoolExecutor."""
+    return args.run(alpha_lo, alpha_hi)
+
+
+def _run_parallel(
+    args: GridSearchArgs, alpha_lo: float, n_alpha_total: int, num_workers: int
+) -> RawGridResult:
+    """Split alpha range into chunks and run grid_search in parallel."""
+    chunks = [ch for ch in np.array_split(range(n_alpha_total), num_workers) if len(ch) > 0]
+    res = args.resolution
+    with ProcessPoolExecutor(max_workers=num_workers) as pool:
+        futures = [
+            (
+                ch[0],
+                pool.submit(
+                    _run_chunk,
+                    args,
+                    alpha_lo=alpha_lo + ch[0] * res,
+                    alpha_hi=alpha_lo + ch[-1] * res,
+                ),
+            )
+            for ch in chunks
+        ]
+
+    best: RawGridResult | None = None
+    for offset, future in futures:
+        r = future.result()
+        r.ai += offset
+        if best is None or r.obj < best.obj:
+            best = r
+
+    assert best is not None
+    best.n_alpha = n_alpha_total
+    best.n_beta = int((args.beta_hi - args.beta_lo) / res) + 1
+    return best
+
+
+def _check_status(raw: RawGridResult, bounds: SurfaceBounds) -> tuple[FitStatus, str]:
+    """Check for grid-edge hits and NNLS clamping."""
+    messages: list[str] = []
+
+    if raw.ai == 0 or raw.ai == raw.n_alpha - 1:
+        messages.append(
+            f"alpha={raw.alpha:.4f} at grid edge [{bounds.alpha[0]:.4f}, {bounds.alpha[1]:.4f}]"
+        )
+    if raw.bi == 0 or raw.bi == raw.n_beta - 1:
+        messages.append(
+            f"beta={raw.beta:.4f} at grid edge [{bounds.beta[0]:.4f}, {bounds.beta[1]:.4f}]"
+        )
+
+    clamped = [name for bit, name in enumerate(["E", "A", "B"]) if raw.clamped_mask & (1 << bit)]
+    if clamped:
+        messages.append(f"NNLS clamped {', '.join(clamped)} to zero")
+
+    if messages:
+        return FitStatus.BOUND_HIT, "; ".join(messages)
+    return FitStatus.CONVERGED, ""
+
+
 def fit_vpnls_grid(
     N: np.ndarray,
     D: np.ndarray,
@@ -27,6 +143,7 @@ def fit_vpnls_grid(
     bounds: SurfaceBounds | None = None,
     loss: LossFunction | None = None,
     max_irls_iter: int = 10,
+    num_workers: int = 1,
 ) -> GridResult:
     """Fit L(N,D) = E + A*N^{-alpha} + B*D^{-beta} via exhaustive grid search."""
     N = np.asarray(N, dtype=np.float64).ravel()
@@ -49,89 +166,42 @@ def fit_vpnls_grid(
     if loss is None:
         loss = LossFunction()
 
-    loss_type_int = 0 if loss.type == LossType.MSE else 1
-    log_N = np.log(N)
-    log_D = np.log(D)
-
-    result = grid_search(
-        log_N,
-        log_D,
-        L,
-        bounds.alpha[0],
-        bounds.alpha[1],
-        bounds.beta[0],
-        bounds.beta[1],
-        resolution,
-        loss_type_int,
-        loss.huber_delta,
-        max_irls_iter,
+    alpha_lo, alpha_hi = bounds.alpha
+    args = GridSearchArgs(
+        log_N=np.log(N),
+        log_D=np.log(D),
+        L=L,
+        beta_lo=bounds.beta[0],
+        beta_hi=bounds.beta[1],
+        resolution=resolution,
+        loss_type_int=0 if loss.type == LossType.MSE else 1,
+        huber_delta=loss.huber_delta,
+        max_irls_iter=max_irls_iter,
     )
+    n_alpha_total = int((alpha_hi - alpha_lo) / resolution) + 1
 
-    (
-        best_E,
-        best_A,
-        best_B,
-        best_alpha,
-        best_beta,
-        best_obj,
-        best_rss,
-        clamped_mask,
-        best_ai,
-        best_bi,
-        n_alpha,
-        n_beta,
-    ) = result
+    if num_workers > 1 and n_alpha_total >= num_workers:
+        raw = _run_parallel(args, alpha_lo, n_alpha_total, num_workers)
+    else:
+        raw = args.run(alpha_lo, alpha_hi)
 
-    # Non-finite check
-    for name, val in [
-        ("E", best_E),
-        ("A", best_A),
-        ("B", best_B),
-        ("alpha", best_alpha),
-        ("beta", best_beta),
-    ]:
-        if not math.isfinite(val):
-            raise NonFiniteFitError(f"Non-finite fitted parameter: {name}={val}")
+    for name in ("E", "A", "B", "alpha", "beta"):
+        if not math.isfinite(getattr(raw, name)):
+            raise NonFiniteFitError(f"Non-finite fitted parameter: {name}={getattr(raw, name)}")
 
-    # Status checks
-    status = FitStatus.CONVERGED
-    messages: list[str] = []
-
-    # Grid-edge hit
-    if best_ai == 0 or best_ai == n_alpha - 1:
-        messages.append(
-            f"alpha={best_alpha:.4f} at grid edge [{bounds.alpha[0]:.4f}, {bounds.alpha[1]:.4f}]"
-        )
-    if best_bi == 0 or best_bi == n_beta - 1:
-        messages.append(
-            f"beta={best_beta:.4f} at grid edge [{bounds.beta[0]:.4f}, {bounds.beta[1]:.4f}]"
-        )
-
-    # NNLS clamping
-    clamped_names = []
-    if clamped_mask & 1:
-        clamped_names.append("E")
-    if clamped_mask & 2:
-        clamped_names.append("A")
-    if clamped_mask & 4:
-        clamped_names.append("B")
-    if clamped_names:
-        messages.append(f"NNLS clamped {', '.join(clamped_names)} to zero")
-
-    if messages:
-        status = FitStatus.BOUND_HIT
+    status, status_message = _check_status(raw, bounds)
 
     return GridResult(
-        E=best_E,
-        A=best_A,
-        B=best_B,
-        alpha=best_alpha,
-        beta=best_beta,
-        loss_value=best_obj,
-        rss=best_rss,
+        E=raw.E,
+        A=raw.A,
+        B=raw.B,
+        alpha=raw.alpha,
+        beta=raw.beta,
+        loss_value=raw.obj,
+        rss=raw.rss,
         n_points=len(N),
         loss_function=loss,
         status=status,
-        status_message="; ".join(messages),
+        status_message=status_message,
         resolution=resolution,
     )

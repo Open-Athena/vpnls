@@ -14,15 +14,21 @@ LOSS_FUNCTIONS = [
     pytest.param(LossFunction(LossType.HUBER, huber_delta=0.01), id="huber"),
 ]
 
+NUM_WORKERS = [
+    pytest.param(1, id="serial"),
+    pytest.param(4, id="parallel"),
+]
+
 
 # ── Parameter recovery (noise-free) ─────────────────────────────────────────
 
 
 @pytest.mark.parametrize("surface", SURFACES)
 @pytest.mark.parametrize("loss", LOSS_FUNCTIONS)
-def test_parameter_recovery(surface: LossSurface, loss):
+@pytest.mark.parametrize("num_workers", NUM_WORKERS)
+def test_parameter_recovery(surface: LossSurface, loss, num_workers: int):
     N, D, L = generate_isoflop_data(surface, noise_std=0.0)
-    result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss)
+    result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss, num_workers=num_workers)
 
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-2)
     assert result.beta == pytest.approx(surface.beta, rel=1e-2)
@@ -41,9 +47,10 @@ def _design_matrix(result, N, D):
     )
 
 
-def test_mse_matches_scipy_least_squares():
+@pytest.mark.parametrize("num_workers", NUM_WORKERS)
+def test_mse_matches_scipy_least_squares(num_workers: int):
     N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
-    result = fit_vpnls_grid(N, D, L, resolution=0.005)
+    result = fit_vpnls_grid(N, D, L, resolution=0.005, num_workers=num_workers)
 
     X = _design_matrix(result, N, D)
     x0 = np.array([result.E, result.A, result.B])
@@ -53,11 +60,12 @@ def test_mse_matches_scipy_least_squares():
     assert result.rss == pytest.approx(np.sum(scipy_result.fun**2), abs=1e-20)
 
 
-def test_huber_matches_scipy_least_squares():
+@pytest.mark.parametrize("num_workers", NUM_WORKERS)
+def test_huber_matches_scipy_least_squares(num_workers: int):
     delta = 0.01
     N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
     loss = LossFunction(LossType.HUBER, huber_delta=delta)
-    result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss)
+    result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss, num_workers=num_workers)
 
     X = _design_matrix(result, N, D)
     x0 = np.array([result.E, result.A, result.B])
@@ -73,13 +81,14 @@ def test_huber_matches_scipy_least_squares():
 # ── NNLS clamping ────────────────────────────────────────────────────────────
 
 
-def test_clamped_rss_matches_returned_params():
+@pytest.mark.parametrize("num_workers", NUM_WORKERS)
+def test_clamped_rss_matches_returned_params(num_workers: int):
     """When NNLS clamps params to zero, RSS must match the clamped (not unconstrained) solution."""
     # E=0 surface + noise → unconstrained OLS finds E<0, NNLS clamps to 0
     surface = LossSurface(alpha=0.40, beta=0.30, A=500, B=500, E=0.0)
     N, D, L = generate_isoflop_data(surface, noise_std=0.02, seed=2)
 
-    result = fit_vpnls_grid(N, D, L, resolution=0.005)
+    result = fit_vpnls_grid(N, D, L, resolution=0.005, num_workers=num_workers)
 
     # Clamping must have occurred and be reported as BOUND_HIT
     assert result.status == FitStatus.BOUND_HIT

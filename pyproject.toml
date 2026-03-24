@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [dependency-groups]
-dev = ["pytest>=7.0", "scipy>=1.10", "jax[cpu]>=0.4", "ruff>=0.8", "pre-commit>=3.0"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "scipy>=1.10", "jax[cpu]>=0.4", "ruff>=0.8", "pre-commit>=3.0"]
 
 [tool.ruff]
 src = ["src"]
