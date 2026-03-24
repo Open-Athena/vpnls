@@ -39,7 +39,7 @@ N, D, L = simulate_isoflop_data(
 
 # 2-digit exponent (alpha/beta) precision (~25ms)
 result = fit_vpnls(N, D, L, method="grid", resolution=0.01)
-# -> alpha=0.34, beta=0.28, E=1.6900, A=406.40, B=410.70 (recovery already exact for this example)
+# -> alpha=0.34, beta=0.28, E=1.6900, A=406.40, B=410.70 (recovery already exact)
 
 # 3-digit precision, 10 processes (~250ms on M4 Pro; 4-digit takes ~16s)
 result = fit_vpnls(N, D, L, method="grid", resolution=0.001, num_workers=10)
