@@ -1,7 +1,7 @@
 """Tests for the unified fit_vpnls API."""
 
 import pytest
-from conftest import SURFACES
+from conftest import NOISELESS, SURFACES
 
 from vpnls.api import fit_vpnls
 from vpnls.sim import generate_isoflop_data
@@ -17,7 +17,7 @@ LOSS_FUNCTIONS = [
 @pytest.mark.parametrize("loss", LOSS_FUNCTIONS)
 def test_scipy_jax_agreement(surface, loss):
     """Scipy and JAX solvers produce equivalent results for both MSE and Huber."""
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
 
     scipy_result = fit_vpnls(N, D, L, method="scipy", loss=loss)
     jax_result = fit_vpnls(N, D, L, method="jax", loss=loss)
@@ -36,7 +36,7 @@ def test_dispatch_returns_correct_types():
     """Each method returns its specific result type."""
     from conftest import CHINCHILLA
 
-    N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
+    N, D, L = generate_isoflop_data(CHINCHILLA, NOISELESS)
 
     assert isinstance(fit_vpnls(N, D, L, method="grid"), GridResult)
     assert isinstance(fit_vpnls(N, D, L, method="scipy"), ScipyResult)
@@ -46,7 +46,7 @@ def test_dispatch_returns_correct_types():
 def test_invalid_method():
     from conftest import CHINCHILLA
 
-    N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
+    N, D, L = generate_isoflop_data(CHINCHILLA, NOISELESS)
 
     with pytest.raises(ValueError, match="Unknown method"):
         fit_vpnls(N, D, L, method="bogus")

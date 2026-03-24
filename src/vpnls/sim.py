@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from vpnls.types import LossSurface
+from vpnls.types import DEFAULT_ISOFLOP_EXPERIMENT, IsoFlopExperiment, LossSurface
 
 
 def compute_center_offset(
@@ -43,18 +43,20 @@ def isoflop_sample(
 
 def generate_isoflop_data(
     surface: LossSurface,
-    *,
-    compute_budgets: np.ndarray = np.array([1e17, 1e18, 1e19, 1e20, 1e21]),
-    n_points_per_budget: int = 15,
-    log_range: float = 1.0,
-    noise_std: float = 0.002,
-    seed: int = 42,
+    experiment: IsoFlopExperiment | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Generate synthetic IsoFLOP data with optional Gaussian noise on losses."""
+    if experiment is None:
+        experiment = DEFAULT_ISOFLOP_EXPERIMENT
+
     all_N, all_D, all_L = [], [], []
-    for C in compute_budgets:
+    for C in experiment.compute_budgets:
         N, D, L = isoflop_sample(
-            C, n_points_per_budget, log_range, center_offset=0.0, surface=surface
+            C,
+            experiment.n_points_per_budget,
+            experiment.log_range,
+            center_offset=0.0,
+            surface=surface,
         )
         all_N.append(N)
         all_D.append(D)
@@ -62,7 +64,36 @@ def generate_isoflop_data(
     N = np.concatenate(all_N)
     D = np.concatenate(all_D)
     L = np.concatenate(all_L)
-    if noise_std > 0.0:
-        rng = np.random.default_rng(seed)
-        L = L + rng.normal(0.0, noise_std, size=L.shape)
+    if experiment.noise_std > 0.0:
+        rng = np.random.default_rng(experiment.seed)
+        L = L + rng.normal(0.0, experiment.noise_std, size=L.shape)
     return N, D, L
+
+
+def simulate_isoflop_data(
+    *,
+    alpha: float,
+    beta: float,
+    A: float,
+    B: float,
+    E: float,
+    compute_budgets: np.ndarray = np.array([1e17, 1e18, 1e19, 1e20, 1e21]),
+    n_points_per_budget: int = 15,
+    log_range: float = 1.0,
+    noise_std: float = 0.002,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Generate synthetic IsoFLOP data from scalar parameters.
+
+    Convenience wrapper around generate_isoflop_data.
+    """
+    return generate_isoflop_data(
+        LossSurface(alpha=alpha, beta=beta, A=A, B=B, E=E),
+        IsoFlopExperiment(
+            compute_budgets=compute_budgets,
+            n_points_per_budget=n_points_per_budget,
+            log_range=log_range,
+            noise_std=noise_std,
+            seed=seed,
+        ),
+    )

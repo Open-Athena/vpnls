@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from conftest import SURFACES
+from conftest import NOISELESS, SURFACES
 
 from vpnls.scipy import (
     _vpnls_huber_objective_and_grad,
@@ -19,7 +19,7 @@ from vpnls.types import LossFunction, LossType
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_parameter_recovery_mse(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     result = fit_vpnls_scipy(N, D, L)
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-6)
     assert result.beta == pytest.approx(surface.beta, rel=1e-6)
@@ -30,7 +30,7 @@ def test_parameter_recovery_mse(surface):
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_parameter_recovery_huber(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     loss = LossFunction(LossType.HUBER, huber_delta=0.01)
     result = fit_vpnls_scipy(N, D, L, loss=loss)
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-6)
@@ -47,7 +47,7 @@ def test_parameter_recovery_huber(surface):
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_rss_near_zero_mse(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     result = fit_vpnls_scipy(N, D, L)
     assert result.rss < 1e-17
 
@@ -76,7 +76,7 @@ def _assert_gradient_matches_fd(obj_and_grad_fn, x0, args, rtol, h=None):
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_gradient_mse(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     log_N, log_D = np.log(N), np.log(D)
     x0 = np.array([0.25, 0.35])
     _assert_gradient_matches_fd(_vpnls_objective_and_grad, x0, (log_N, log_D, L), rtol=1e-7)
@@ -84,7 +84,7 @@ def test_gradient_mse(surface):
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_gradient_huber(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     log_N, log_D = np.log(N), np.log(D)
     x0 = np.array([0.25, 0.35])
     _assert_gradient_matches_fd(

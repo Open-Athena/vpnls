@@ -138,7 +138,7 @@ def fit_vpnls_grid(
     D: np.ndarray,
     L: np.ndarray,
     *,
-    resolution: float = 0.01,
+    resolution: float = 0.001,
     bounds: SurfaceBounds | None = None,
     loss: LossFunction | None = None,
     max_irls_iter: int = 10,

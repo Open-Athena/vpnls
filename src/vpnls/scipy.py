@@ -167,7 +167,7 @@ def fit_vpnls_scipy(
     D: np.ndarray,
     L: np.ndarray,
     *,
-    grid_resolution: float = 0.03,
+    grid_resolution: float = 0.01,
     bounds: SurfaceBounds | None = None,
     options: LBFGSBOptions | None = None,
     loss: LossFunction | None = None,

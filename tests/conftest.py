@@ -1,6 +1,8 @@
 import pytest
 
-from vpnls.types import LossSurface
+from vpnls.types import IsoFlopExperiment, LossSurface
+
+NOISELESS = IsoFlopExperiment(noise_std=0.0)
 
 SYMMETRIC = LossSurface(alpha=0.31, beta=0.31, A=400, B=400, E=1.69)
 CHINCHILLA = LossSurface(alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69)

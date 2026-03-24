@@ -1,7 +1,7 @@
 """Tests for the JAX autodiff VPNLS solver."""
 
 import pytest
-from conftest import CHINCHILLA, SURFACES
+from conftest import CHINCHILLA, NOISELESS, SURFACES
 
 from vpnls.jax import fit_vpnls_jax
 from vpnls.scipy import fit_vpnls_scipy
@@ -15,7 +15,7 @@ from vpnls.types import LossFunction, LossType
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_parameter_recovery_mse(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     result = fit_vpnls_jax(N, D, L)
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-6)
     assert result.beta == pytest.approx(surface.beta, rel=1e-6)
@@ -26,7 +26,7 @@ def test_parameter_recovery_mse(surface):
 
 @pytest.mark.parametrize("surface", SURFACES)
 def test_parameter_recovery_huber(surface):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     loss = LossFunction(LossType.HUBER, huber_delta=0.01)
     result = fit_vpnls_jax(N, D, L, loss=loss)
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-6)
@@ -42,7 +42,7 @@ def test_parameter_recovery_huber(surface):
 
 
 def test_agreement_with_scipy():
-    N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
+    N, D, L = generate_isoflop_data(CHINCHILLA, NOISELESS)
     jax_result = fit_vpnls_jax(N, D, L)
     scipy_result = fit_vpnls_scipy(N, D, L)
     assert jax_result.alpha == pytest.approx(scipy_result.alpha, rel=1e-4)

@@ -1,7 +1,7 @@
 """Types for the VPNLS package."""
 
 import enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -199,6 +199,22 @@ class JaxResult(VPNLSResult):
 # =============================================================================
 # Default instances
 # =============================================================================
+
+
+@dataclass(frozen=True)
+class IsoFlopExperiment:
+    """Configuration for a synthetic IsoFLOP experiment."""
+
+    compute_budgets: np.ndarray = field(
+        default_factory=lambda: np.array([1e17, 1e18, 1e19, 1e20, 1e21])
+    )
+    n_points_per_budget: int = 15
+    log_range: float = 1.0
+    noise_std: float = 0.002
+    seed: int = 42
+
+
+DEFAULT_ISOFLOP_EXPERIMENT = IsoFlopExperiment()
 
 DEFAULT_EXPONENT_GRID = ExponentGrid(
     alpha=np.linspace(0.01, 0.99, 128),

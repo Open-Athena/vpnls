@@ -6,14 +6,14 @@ import numpy as np
 
 from vpnls.grid import fit_vpnls_grid
 from vpnls.sim import generate_isoflop_data
-from vpnls.types import LossSurface
+from vpnls.types import IsoFlopExperiment, LossSurface
 
 # Simulated data: 8 compute budgets × 16 points = 128 data points
 surface = LossSurface(alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69)
-budgets = np.geomspace(1e17, 1e22, 8)
-N, D, L = generate_isoflop_data(
-    surface, noise_std=0.002, compute_budgets=budgets, n_points_per_budget=16
+experiment = IsoFlopExperiment(
+    compute_budgets=np.geomspace(1e17, 1e22, 8), n_points_per_budget=16, noise_std=0.002
 )
+N, D, L = generate_isoflop_data(surface, experiment)
 
 # Log-spaced resolutions: 0.01 to 0.0001 (2 decades, 11 points)
 resolutions = np.geomspace(0.01, 0.0001, 11)

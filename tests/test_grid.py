@@ -2,12 +2,12 @@
 
 import numpy as np
 import pytest
-from conftest import CHINCHILLA, SURFACES
+from conftest import CHINCHILLA, NOISELESS, SURFACES
 from scipy.optimize import least_squares
 
 from vpnls.grid import fit_vpnls_grid
 from vpnls.sim import generate_isoflop_data
-from vpnls.types import FitStatus, LossFunction, LossSurface, LossType
+from vpnls.types import FitStatus, IsoFlopExperiment, LossFunction, LossSurface, LossType
 
 LOSS_FUNCTIONS = [
     pytest.param(None, id="mse"),
@@ -27,7 +27,7 @@ NUM_WORKERS = [
 @pytest.mark.parametrize("loss", LOSS_FUNCTIONS)
 @pytest.mark.parametrize("num_workers", NUM_WORKERS)
 def test_parameter_recovery(surface: LossSurface, loss, num_workers: int):
-    N, D, L = generate_isoflop_data(surface, noise_std=0.0)
+    N, D, L = generate_isoflop_data(surface, NOISELESS)
     result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss, num_workers=num_workers)
 
     assert result.alpha == pytest.approx(surface.alpha, rel=1e-2)
@@ -49,7 +49,7 @@ def _design_matrix(result, N, D):
 
 @pytest.mark.parametrize("num_workers", NUM_WORKERS)
 def test_mse_matches_scipy_least_squares(num_workers: int):
-    N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
+    N, D, L = generate_isoflop_data(CHINCHILLA, NOISELESS)
     result = fit_vpnls_grid(N, D, L, resolution=0.005, num_workers=num_workers)
 
     X = _design_matrix(result, N, D)
@@ -63,7 +63,7 @@ def test_mse_matches_scipy_least_squares(num_workers: int):
 @pytest.mark.parametrize("num_workers", NUM_WORKERS)
 def test_huber_matches_scipy_least_squares(num_workers: int):
     delta = 0.01
-    N, D, L = generate_isoflop_data(CHINCHILLA, noise_std=0.0)
+    N, D, L = generate_isoflop_data(CHINCHILLA, NOISELESS)
     loss = LossFunction(LossType.HUBER, huber_delta=delta)
     result = fit_vpnls_grid(N, D, L, resolution=0.005, loss=loss, num_workers=num_workers)
 
@@ -86,7 +86,7 @@ def test_clamped_rss_matches_returned_params(num_workers: int):
     """When NNLS clamps params to zero, RSS must match the clamped (not unconstrained) solution."""
     # E=0 surface + noise → unconstrained OLS finds E<0, NNLS clamps to 0
     surface = LossSurface(alpha=0.40, beta=0.30, A=500, B=500, E=0.0)
-    N, D, L = generate_isoflop_data(surface, noise_std=0.02, seed=2)
+    N, D, L = generate_isoflop_data(surface, IsoFlopExperiment(noise_std=0.02, seed=2))
 
     result = fit_vpnls_grid(N, D, L, resolution=0.005, num_workers=num_workers)
 

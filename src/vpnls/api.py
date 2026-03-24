@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import numpy as np
 
+from vpnls.sim import simulate_isoflop_data
 from vpnls.types import (
     LBFGSBOptions,
     LossFunction,
     SurfaceBounds,
     VPNLSResult,
 )
+
+__all__ = [
+    "fit_vpnls",
+    "simulate_isoflop_data",
+]
 
 
 def fit_vpnls(
@@ -23,10 +29,10 @@ def fit_vpnls(
     loss: LossFunction | None = None,
     max_irls_iter: int = 10,
     # Grid params (method="grid")
-    resolution: float = 0.01,
+    resolution: float = 0.001,
     num_workers: int = 1,
     # Scipy/JAX params (method="scipy" or "jax")
-    grid_resolution: float = 0.03,
+    grid_resolution: float = 0.01,
     options: LBFGSBOptions | None = None,
     # JAX-only params (method="jax")
     enable_x64: bool = True,
