@@ -20,7 +20,7 @@ pip install vpnls[jax]       # + JAX autodiff solver
 | Method | Backend | Use case |
 |--------|---------|----------|
 | `grid` | Cython grid search | Fast brute-force search over exponent space; supports multiprocess parallelism |
-| `scipy` | L-BFGS-B with analytical gradients | Continuous optimization via envelope-theorem gradients, as in the [VPNLS paper](https://arxiv.org/abs/2503.04715) |
+| `scipy` | L-BFGS-B with analytical gradients | Continuous optimization via envelope-theorem gradients, as in the [VPNLS paper](https://github.com/Open-Athena/scaling-law-analysis/blob/main/results/paper/paper.pdf) |
 | `jax` | JAX autodiff + L-BFGS-B | Same approach as [ml-scalefit](https://github.com/apple/ml-scalefit); autodiff through `lstsq` instead of hand-derived gradients |
 
 All three support MSE and Huber loss.
