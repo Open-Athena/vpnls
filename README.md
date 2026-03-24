@@ -33,7 +33,7 @@ from vpnls.api import fit_vpnls, simulate_isoflop_data
 
 # Generate synthetic data (8 budgets x 16 points = 128 samples)
 N, D, L = simulate_isoflop_data(
-    alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69,
+    alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69,  # Chinchilla / Hoffmann et al. 2022
     compute_budgets=np.geomspace(1e17, 1e22, 8), n_points_per_budget=16, noise_std=0,
 )
 
