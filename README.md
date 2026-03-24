@@ -5,9 +5,7 @@
 
 Variable Projection with Nonlinear Least Squares (VPNLS) for fitting compute-optimal scaling laws of the form:
 
-```
-L(N, D) = E + A * N^(-alpha) + B * D^(-beta)
-```
+$$L(N, D) = E + A \cdot N^{-\alpha} + B \cdot D^{-\beta}$$
 
 ## Installation
 
