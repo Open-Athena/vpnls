@@ -47,5 +47,5 @@ result = fit_vpnls(N, D, L, method="grid", resolution=0.001, num_workers=10)
 # -> alpha=0.34, beta=0.28, E=1.6900, A=406.40, B=410.70
 
 # L-BFGS-B refinement from dense grid search above
-result = fit_vpnls(N, D, L, method="scipy")  # or "jax"
+result = fit_vpnls(N, D, L, method="jax")  # or "scipy"
 ```
