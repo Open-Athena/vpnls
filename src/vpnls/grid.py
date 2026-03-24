@@ -107,8 +107,7 @@ def _run_parallel(
             best = r
 
     assert best is not None
-    best.n_alpha = n_alpha_total
-    best.n_beta = int((args.beta_hi - args.beta_lo) / res) + 1
+    best.n_alpha = n_alpha_total  # chunk has local count; override with global
     return best
 
 

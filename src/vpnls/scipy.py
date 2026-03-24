@@ -66,6 +66,12 @@ def _vpnls_objective_and_grad(
 # =============================================================================
 
 
+def _huber_weights(abs_r: np.ndarray, delta: float) -> np.ndarray:
+    """Huber weights: 1.0 where |r| <= delta, else delta / |r|."""
+    with np.errstate(divide="ignore"):
+        return np.where(abs_r <= delta, 1.0, delta / abs_r)
+
+
 def _vpnls_huber_irls_and_params(
     alpha: float,
     beta: float,
@@ -87,7 +93,7 @@ def _vpnls_huber_irls_and_params(
     for _ in range(max_irls_iter):
         resid = L - X @ params
         abs_r = np.abs(resid)
-        w = np.where(abs_r <= delta, 1.0, delta / np.maximum(abs_r, 1e-300))
+        w = _huber_weights(abs_r, delta)
         XtW = (X * w[:, None]).T
         new_params = np.linalg.solve(XtW @ X, XtW @ L)
         if np.max(np.abs(new_params - params)) < 1e-14:
@@ -97,7 +103,7 @@ def _vpnls_huber_irls_and_params(
 
     resid = L - X @ params
     abs_r = np.abs(resid)
-    w = np.where(abs_r <= delta, 1.0, delta / np.maximum(abs_r, 1e-300))
+    w = _huber_weights(abs_r, delta)
 
     # Huber objective = mean(huber(r_i, delta))
     huber_vals = np.where(abs_r <= delta, 0.5 * resid**2, delta * (abs_r - 0.5 * delta))
