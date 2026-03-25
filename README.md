@@ -1,5 +1,6 @@
 # vpnls
 
+[![arXiv](https://img.shields.io/badge/arXiv-2603.22339-b31b1b.svg)](https://arxiv.org/abs/2603.22339)
 [![CI](https://github.com/Open-Athena/vpnls/actions/workflows/ci.yml/badge.svg)](https://github.com/Open-Athena/vpnls/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Open-Athena/vpnls/graph/badge.svg?token=6GD640V7I7)](https://codecov.io/gh/Open-Athena/vpnls)
 
@@ -20,7 +21,7 @@ pip install vpnls[jax]       # + JAX autodiff solver
 | Method | Backend | Use case |
 |--------|---------|----------|
 | `grid` | Cython grid search | Fast brute-force search over 2D exponent space for 5D inference; supports multiprocess parallelism |
-| `scipy` | L-BFGS-B with analytical gradients | 2D continuous optimization via envelope-theorem gradients, as in the [VPNLS paper](https://github.com/Open-Athena/scaling-law-analysis/blob/main/results/paper/paper.pdf) |
+| `scipy` | L-BFGS-B with analytical gradients | 2D continuous optimization via envelope-theorem gradients, as in the [VPNLS paper](https://arxiv.org/abs/2603.22339) |
 | `jax` | JAX autodiff + L-BFGS-B | Same 2D optimization as scipy but with autodiff through `lstsq`; same approach as [ml-scalefit](https://github.com/apple/ml-scalefit) |
 
 All three support MSE and Huber loss.
