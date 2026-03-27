@@ -49,6 +49,8 @@ result = fit_vpnls(N, D, L, resolution=0.001, num_workers=10)
 # -> alpha=0.340, beta=0.280, E=1.6900, A=406.40, B=410.70 (still exact)
 ```
 
+Passing `method="jax"` or `method="scipy"` runs L-BFGS-B refinement from the dense grid search results above. This is rarely necessary on real data and included here primarily for parity with other methods.
+
 ### Real data
 
 Fit Chinchilla scaling law parameters on data from [open-athena/isoflop-experiments](https://huggingface.co/datasets/open-athena/isoflop-experiments):
