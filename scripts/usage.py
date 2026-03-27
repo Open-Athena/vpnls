@@ -109,6 +109,7 @@ def compare(df: pd.DataFrame):
                 loss_kwargs={"delta": HUBER_DELTA},
                 seed=42,
                 n_bootstraps=1,
+                n_starts=10,
             )
             t0 = time.perf_counter()
             sf.fit(inputs, targets)
