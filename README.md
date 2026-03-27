@@ -46,7 +46,7 @@ result = fit_vpnls(N, D, L, resolution=0.01)
 
 # 3-digit precision, 10 processes (~250ms on M4 Pro; 4-digit takes ~16s)
 result = fit_vpnls(N, D, L, resolution=0.001, num_workers=10)
-# -> alpha=0.340, beta=0.280, E=1.6900, A=406.40, B=410.70
+# -> alpha=0.340, beta=0.280, E=1.6900, A=406.40, B=410.70 (still exact)
 ```
 
 ### Real data
