@@ -18,7 +18,7 @@ from vpnls.api import bounds, fit_vpnls, huber
 
 EXPERIMENTS = {
     "ml_scalefit__massivetext__chinchilla": "chinchilla",
-    "llama_3__raw_loss": "llama3",
+    "llama_3": "llama3",
     "marin_202603__comma__llama_2": "marin/comma",
     "marin_202603__dclm__llama_2": "marin/dclm",
     "marin_202603__nemotron__llama_2": "marin/nemotron",
