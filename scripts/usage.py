@@ -81,7 +81,7 @@ def quickstart(df: pd.DataFrame):
 # ── vpnls vs scalefit comparison ────────────────────────────────────────────
 
 
-TIME_REPS = 11  # first run discarded as warmup
+TIME_REPS = 11  # first run + 10 subsequent runs
 
 
 def compare(df: pd.DataFrame):
@@ -107,15 +107,16 @@ def compare(df: pd.DataFrame):
             )
             vp_times.append(time.perf_counter() - t0)
 
-        # scalefit
+        # scalefit — vary seed across runs
         sf_times = []
+        sf_hubers = []
         for i in range(TIME_REPS):
             sf = ScalingLaw(
                 model_fn=sf_model,
                 bounds=SHARED_BOUNDS,
                 loss="huber",
                 loss_kwargs={"delta": HUBER_DELTA},
-                seed=42,
+                seed=i,
                 # defaults per https://github.com/apple/ml-scalefit/blob/ac4664af/src/scalefit/scaling.py#L97-L105
                 n_bootstraps=1,
                 n_starts=10,
@@ -123,21 +124,21 @@ def compare(df: pd.DataFrame):
             t0 = time.perf_counter()
             sf.fit(inputs, targets)
             sf_times.append(time.perf_counter() - t0)
+            sf_p = {k: float(v) for k, v in sf.optimal_params_.items()}
+            sf_hubers.append(huber_objective(L, predict(sf_p, N, D), HUBER_DELTA))
 
-        # Evaluate both with same prediction function (first run results)
+        # Evaluate vpnls (deterministic)
         vp_p = {"E": vp.E, "A": vp.A, "B": vp.B, "alpha": vp.alpha, "beta": vp.beta}
-        sf_p = {k: float(v) for k, v in sf.optimal_params_.items()}
         vp_h = huber_objective(L, predict(vp_p, N, D), HUBER_DELTA)
-        sf_h = huber_objective(L, predict(sf_p, N, D), HUBER_DELTA)
 
-        rows.append((short, len(L), vp_h, sf_h, vp_times, sf_times))
+        rows.append((short, len(L), vp_h, sf_hubers, vp_times, sf_times))
 
     # Print summary table
     scale = 1e6
     huber_w = 8 + 2 + 8 + 2 + 10
     n_avg = TIME_REPS - 1
 
-    def print_table(label, get_vp_t, get_sf_t):
+    def print_table(label, get_vp_t, get_sf_t, get_sf_h):
         print(f"{'':>16s}  {'':>4s}  {'── Huber loss (×10⁶) ':─<{huber_w}s}  ── {label} ")
         print(
             f"{'experiment':>16s}  {'n':>4s}  {'vpnls':>8s}  {'scalefit':>8s}  "
@@ -146,31 +147,35 @@ def compare(df: pd.DataFrame):
         w = [16, 4, 8, 8, 10, 6, 8, 7]
         sep = "  ".join("─" * n for n in w)
         print(sep)
-        for name, n, vp_h, sf_h, vp_ts, sf_ts in rows:
+        for name, n, vp_h, sf_hs, vp_ts, sf_ts in rows:
+            sf_h = get_sf_h(sf_hs)
             vp_t, sf_t = get_vp_t(vp_ts), get_sf_t(sf_ts)
             print(
                 f"{name:>16s}  {n:4d}  {vp_h * scale:8.1f}  {sf_h * scale:8.1f}  "
                 f"{(vp_h - sf_h) * scale:+10.2f}  {vp_t:6.3f}  {sf_t:8.3f}  {sf_t / vp_t:6.1f}x"
             )
 
-        def tot(i):
-            return sum(r[i] for r in rows)
-
+        tot_n = sum(r[1] for r in rows)
+        tot_vp_h = sum(r[2] for r in rows)
+        tot_sf_h = sum(get_sf_h(r[3]) for r in rows)
         tot_vp = sum(get_vp_t(r[4]) for r in rows)
         tot_sf = sum(get_sf_t(r[5]) for r in rows)
         print(sep)
-        h_diff = (tot(2) - tot(3)) * scale
+        h_diff = (tot_vp_h - tot_sf_h) * scale
         print(
-            f"{'total':>16s}  {tot(1):4d}  {tot(2) * scale:8.1f}  {tot(3) * scale:8.1f}  "
+            f"{'total':>16s}  {tot_n:4d}  {tot_vp_h * scale:8.1f}  {tot_sf_h * scale:8.1f}  "
             f"{h_diff:+10.2f}  {tot_vp:6.3f}  {tot_sf:8.3f}  {tot_sf / tot_vp:6.1f}x"
         )
 
     print(f"vpnls vs scalefit (Huber δ={HUBER_DELTA}, loss ×10⁶)")
     print()
-    print_table("Time: first run (s) ", lambda ts: ts[0], lambda ts: ts[0])
+    print_table("Time: first run (s) ", lambda ts: ts[0], lambda ts: ts[0], lambda hs: hs[0])
     print()
     print_table(
-        f"Time: avg of {n_avg} runs (s) ", lambda ts: np.mean(ts[1:]), lambda ts: np.mean(ts[1:])
+        f"Time: avg of {n_avg} runs (s) ",
+        lambda ts: np.mean(ts[1:]),
+        lambda ts: np.mean(ts[1:]),
+        lambda hs: np.mean(hs[1:]),
     )
     print()
 
