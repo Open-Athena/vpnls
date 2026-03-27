@@ -33,6 +33,7 @@ SHARED_BOUNDS = {
 }
 
 HUBER_DELTA = 1e-3
+RESOLUTION = 0.01
 
 
 def load_experiment(df: pd.DataFrame, experiment: str):
@@ -70,7 +71,7 @@ def sf_model(params, inputs):
 def quickstart(df: pd.DataFrame):
     """Minimal vpnls usage example."""
     N, D, L = load_experiment(df, "ml_scalefit__massivetext__chinchilla")
-    r = fit_vpnls(N, D, L, resolution=0.01, loss=huber(1e-3))
+    r = fit_vpnls(N, D, L, resolution=RESOLUTION, loss=huber(HUBER_DELTA))
 
     print("Quick start: fit Chinchilla data with vpnls")
     print(f"  α={r.alpha:.4f}  β={r.beta:.4f}  E={r.E:.4f}  A={r.A:.4f}  B={r.B:.4f}")
@@ -96,7 +97,14 @@ def compare(df: pd.DataFrame):
         vp_times = []
         for i in range(TIME_REPS):
             t0 = time.perf_counter()
-            vp = fit_vpnls(N, D, L, loss=huber(HUBER_DELTA), bounds=bounds(**SHARED_BOUNDS))
+            vp = fit_vpnls(
+                N,
+                D,
+                L,
+                resolution=RESOLUTION,
+                loss=huber(HUBER_DELTA),
+                bounds=bounds(**SHARED_BOUNDS),
+            )
             vp_times.append(time.perf_counter() - t0)
 
         # scalefit
