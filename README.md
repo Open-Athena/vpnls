@@ -102,3 +102,14 @@ Comparison to [ml-scalefit](https://github.com/apple/ml-scalefit) across 5 exper
 </details>
 
 Both minimize Huber loss (δ=0.001); evaluation uses [`scalefit.optim.huber_loss`](https://github.com/apple/ml-scalefit/blob/ac4664af5db6c94e6ac7521a61dd3bbb0d91cc3a/src/scalefit/optim.py#L88-L106). See [scripts/usage.py](scripts/usage.py) to reproduce.
+
+## Citation
+
+```bibtex
+@article{openathena2026approach2,
+  title={Problems with Chinchilla Approach 2: Systematic Biases in IsoFLOP Parabola Fits},
+  author={Czech, Eric and Xu, Zhiwei and Elmatad, Yael and Wang, Yixin and Held, William},
+  journal={arXiv preprint arXiv:2603.22339},
+  year={2026}
+}
+```
