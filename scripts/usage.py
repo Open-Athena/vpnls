@@ -70,7 +70,7 @@ def sf_model(params, inputs):
 def quickstart(df: pd.DataFrame):
     """Minimal vpnls usage example."""
     N, D, L = load_experiment(df, "ml_scalefit__massivetext__chinchilla")
-    r = fit_vpnls(N, D, L)
+    r = fit_vpnls(N, D, L, resolution=0.01, loss=huber(1e-3))
 
     print("Quick start: fit Chinchilla data with vpnls")
     print(f"  α={r.alpha:.4f}  β={r.beta:.4f}  E={r.E:.4f}  A={r.A:.4f}  B={r.B:.4f}")

@@ -55,7 +55,7 @@ Fit Chinchilla scaling law parameters on data from [open-athena/isoflop-experime
 
 ```python
 from datasets import load_dataset
-from vpnls.api import fit_vpnls
+from vpnls.api import fit_vpnls, huber
 
 df = load_dataset("open-athena/isoflop-experiments", split="train").to_pandas()
 data = df[df["experiment"] == "ml_scalefit__massivetext__chinchilla"]
@@ -64,8 +64,8 @@ N = data["params"].values.copy() / 1e6   # normalize to millions
 D = data["tokens"].values.copy() / 1e9   # normalize to billions
 L = data["loss"].values.copy()
 
-result = fit_vpnls(N, D, L)
-# -> alpha=0.3900, beta=0.4300, E=1.9160, A=4.5700, B=1.0717
+result = fit_vpnls(N, D, L, resolution=0.01, loss=huber(1e-3))
+# -> alpha=0.3600, beta=0.4000, E=1.8608, A=4.1479, B=1.0546
 ```
 
 Comparison to [ml-scalefit](https://github.com/apple/ml-scalefit) across 5 experiments from the same dataset showing better fits in less time:
