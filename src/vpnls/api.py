@@ -8,14 +8,34 @@ from vpnls.sim import simulate_isoflop_data
 from vpnls.types import (
     LBFGSBOptions,
     LossFunction,
+    LossType,
     SurfaceBounds,
     VPNLSResult,
 )
 
 __all__ = [
+    "bounds",
     "fit_vpnls",
+    "huber",
     "simulate_isoflop_data",
 ]
+
+
+def bounds(
+    *,
+    E: tuple[float, float] = (1e-6, 10.0),
+    A: tuple[float, float] = (1e-6, 1e6),
+    B: tuple[float, float] = (1e-6, 1e6),
+    alpha: tuple[float, float] = (0.01, 0.99),
+    beta: tuple[float, float] = (0.01, 0.99),
+) -> SurfaceBounds:
+    """Create optimization bounds for surface parameters."""
+    return SurfaceBounds(E=E, A=A, B=B, alpha=alpha, beta=beta)
+
+
+def huber(delta: float = 1.0) -> LossFunction:
+    """Create a Huber loss function with the given delta."""
+    return LossFunction(type=LossType.HUBER, huber_delta=delta)
 
 
 def fit_vpnls(
@@ -23,16 +43,15 @@ def fit_vpnls(
     D: np.ndarray,
     L: np.ndarray,
     *,
-    method: str = "scipy",
+    method: str = "grid",
     # Common params
     bounds: SurfaceBounds | None = None,
     loss: LossFunction | None = None,
     max_irls_iter: int = 10,
     # Grid params (method="grid")
-    resolution: float = 0.001,
+    resolution: float = 0.01,
     num_workers: int = 1,
     # Scipy/JAX params (method="scipy" or "jax")
-    grid_resolution: float = 0.01,
     options: LBFGSBOptions | None = None,
     # JAX-only params (method="jax")
     enable_x64: bool = True,
@@ -49,9 +68,10 @@ def fit_vpnls(
         bounds: Optimization bounds for (E, A, B, alpha, beta).
         loss: Loss function (MSE or Huber).
         max_irls_iter: Max IRLS iterations for Huber loss.
-        resolution: Grid step size in exponent space (grid only).
+        resolution: Grid step size in exponent space. For "grid", this is the
+            final resolution. For "scipy"/"jax", this is the coarse grid used
+            for L-BFGS-B initialization.
         num_workers: Number of parallel processes for grid search (grid only).
-        grid_resolution: Coarse grid resolution for L-BFGS-B initialization (scipy/jax).
         options: L-BFGS-B optimizer options (scipy/jax).
         enable_x64: Enable JAX float64 precision (jax only).
 
@@ -67,7 +87,7 @@ def fit_vpnls(
     elif method == "scipy":
         from vpnls.scipy import fit_vpnls_scipy
 
-        return fit_vpnls_scipy(N, D, L, grid_resolution=grid_resolution, options=options, **common)
+        return fit_vpnls_scipy(N, D, L, resolution=resolution, options=options, **common)
     elif method == "jax":
         from vpnls.jax import fit_vpnls_jax
 
@@ -75,7 +95,7 @@ def fit_vpnls(
             N,
             D,
             L,
-            grid_resolution=grid_resolution,
+            resolution=resolution,
             options=options,
             enable_x64=enable_x64,
             **common,

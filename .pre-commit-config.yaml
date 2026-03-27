@@ -13,4 +13,4 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
-        exclude: ^(setup\.py|tests/)
+        exclude: ^(setup\.py|tests/|scripts/)

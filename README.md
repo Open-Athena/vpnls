@@ -28,23 +28,77 @@ All three support MSE and Huber loss.
 
 ## Usage
 
+### Simulated data
+
 ```python
 import numpy as np
 from vpnls.api import fit_vpnls, simulate_isoflop_data
 
-# Generate synthetic data (8 budgets x 16 points = 128 samples)
+# Generate synthetic IsoFLOP data (8 budgets × 16 points = 128 samples)
 N, D, L = simulate_isoflop_data(
-    alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69,  # Chinchilla / Hoffmann et al. 2022
+    alpha=0.34, beta=0.28, A=406.4, B=410.7, E=1.69,
     compute_budgets=np.geomspace(1e17, 1e22, 8), n_points_per_budget=16, noise_std=0,
 )
 
 # 2-digit exponent (alpha/beta) precision (~25ms)
-result = fit_vpnls(N, D, L, method="grid", resolution=0.01)
-# -> alpha=0.34, beta=0.28, E=1.6900, A=406.40, B=410.70 (recovery is already exact)
+result = fit_vpnls(N, D, L, resolution=0.01)
+# -> alpha=0.34, beta=0.28, E=1.6900, A=406.40, B=410.70
 
 # 3-digit precision, 10 processes (~250ms on M4 Pro; 4-digit takes ~16s)
-result = fit_vpnls(N, D, L, method="grid", resolution=0.001, num_workers=10)
-
-# L-BFGS-B refinement from dense grid search above
-result = fit_vpnls(N, D, L, method="jax")  # or "scipy"
+result = fit_vpnls(N, D, L, resolution=0.001, num_workers=10)
+# -> alpha=0.340, beta=0.280, E=1.6900, A=406.40, B=410.70
 ```
+
+### Real data
+
+Fit Chinchilla scaling law parameters on data from [open-athena/isoflop-experiments](https://huggingface.co/datasets/open-athena/isoflop-experiments):
+
+```python
+from datasets import load_dataset
+from vpnls.api import fit_vpnls
+
+df = load_dataset("open-athena/isoflop-experiments", split="train").to_pandas()
+data = df[df["experiment"] == "ml_scalefit__massivetext__chinchilla"]
+
+N = data["params"].values.copy() / 1e6   # normalize to millions
+D = data["tokens"].values.copy() / 1e9   # normalize to billions
+L = data["loss"].values.copy()
+
+result = fit_vpnls(N, D, L)
+# -> alpha=0.3900, beta=0.4300, E=1.9160, A=4.5700, B=1.0717
+```
+
+Comparison to [ml-scalefit](https://github.com/apple/ml-scalefit) across 5 experiments from the same dataset showing better fits in less time:
+
+```
+                        ── Huber loss ────────────────  ── Time: first run (s)
+      experiment     n     vpnls  scalefit           Δ   vpnls  scalefit  speedup
+────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
+      chinchilla   124      13.1      13.2       -0.13   0.103     1.711    16.6x
+          llama3   133       2.3       2.4       -0.08   0.113     0.628     5.5x
+     marin/comma    85      22.9      23.4       -0.51   0.073     0.490     6.7x
+      marin/dclm    85      22.9      25.0       -2.07   0.075     0.257     3.4x
+  marin/nemotron    88      22.6      24.2       -1.59   0.079     0.476     6.0x
+────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
+           total   515      83.8      88.2       -4.39   0.443     3.561     8.0x
+```
+
+<details>
+<summary>Avg of 10 subsequent runs (8.0x → 3.5x speedup)</summary>
+
+```
+                        ── Huber loss ────────────────  ── Time: avg of 10 runs (s)
+      experiment     n     vpnls  scalefit           Δ   vpnls  scalefit  speedup
+────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
+      chinchilla   124      13.1      13.2       -0.13   0.104     0.390     3.7x
+          llama3   133       2.3       2.4       -0.08   0.113     0.388     3.4x
+     marin/comma    85      22.9      23.4       -0.51   0.073     0.257     3.5x
+      marin/dclm    85      22.9      25.0       -2.07   0.074     0.243     3.3x
+  marin/nemotron    88      22.6      24.2       -1.59   0.077     0.265     3.4x
+────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
+           total   515      83.8      88.2       -4.39   0.441     1.542     3.5x
+```
+
+</details>
+
+Both minimize Huber loss (δ=0.001); evaluation uses [`scalefit.optim.huber_loss`](https://github.com/apple/ml-scalefit/blob/ac4664af5db6c94e6ac7521a61dd3bbb0d91cc3a/src/scalefit/optim.py#L88-L106). See [scripts/usage.py](scripts/usage.py) to reproduce.
