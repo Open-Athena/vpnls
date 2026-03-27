@@ -73,7 +73,7 @@ result = fit_vpnls(N, D, L, resolution=0.01, loss=huber(1e-3))
 Comparison to [ml-scalefit](https://github.com/apple/ml-scalefit) across 5 experiments from the same dataset showing better fits in less time:
 
 ```
-                        ── Huber loss ────────────────  ── Time: first run (s)
+                        ── Huber loss (×10⁶) ─────────  ── Time: first run (s)
       experiment     n     vpnls  scalefit           Δ   vpnls  scalefit  speedup
 ────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
       chinchilla   124      13.1      13.2       -0.13   0.103     1.711    16.6x
@@ -89,7 +89,7 @@ Comparison to [ml-scalefit](https://github.com/apple/ml-scalefit) across 5 exper
 <summary>Avg of 10 subsequent runs (8.0x → 3.5x speedup)</summary>
 
 ```
-                        ── Huber loss ────────────────  ── Time: avg of 10 runs (s)
+                        ── Huber loss (×10⁶) ─────────  ── Time: avg of 10 runs (s)
       experiment     n     vpnls  scalefit           Δ   vpnls  scalefit  speedup
 ────────────────  ────  ────────  ────────  ──────────  ──────  ────────  ───────
       chinchilla   124      13.1      13.2       -0.13   0.104     0.390     3.7x

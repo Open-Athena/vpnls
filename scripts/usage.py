@@ -130,7 +130,7 @@ def compare(df: pd.DataFrame):
     n_avg = TIME_REPS - 1
 
     def print_table(label, get_vp_t, get_sf_t):
-        print(f"{'':>16s}  {'':>4s}  {'── Huber loss ':─<{huber_w}s}  ── {label} ")
+        print(f"{'':>16s}  {'':>4s}  {'── Huber loss (×10⁶) ':─<{huber_w}s}  ── {label} ")
         print(
             f"{'experiment':>16s}  {'n':>4s}  {'vpnls':>8s}  {'scalefit':>8s}  "
             f"{'Δ':>10s}  {'vpnls':>6s}  {'scalefit':>8s}  {'speedup':>7s}"
