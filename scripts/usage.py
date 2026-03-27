@@ -108,6 +108,7 @@ def compare(df: pd.DataFrame):
                 loss="huber",
                 loss_kwargs={"delta": HUBER_DELTA},
                 seed=42,
+                # defaults per https://github.com/apple/ml-scalefit/blob/ac4664af/src/scalefit/scaling.py#L97-L105
                 n_bootstraps=1,
                 n_starts=10,
             )
